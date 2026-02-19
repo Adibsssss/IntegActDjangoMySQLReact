@@ -331,9 +331,9 @@ These are the credentials you set when running `python manage.py createsuperuser
 
 | Field    | Value              |
 |----------|--------------------|
-| Username | *(your choice)*    |
-| Password | *(your choice)*    |
-| Email    | *(your choice)*    |
+| Username | admin *(your choice)*    |
+| Password | admin123 *(your choice)*    |
+| Email    | admin@gmail.com *(your choice)*    |
 
 > Only accounts with `is_superuser = True` are allowed to log in through the React app.
 
