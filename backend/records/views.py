@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Record
+from .serializers import RecordSerializer
 
 @csrf_exempt
 def admin_login(request):
@@ -23,46 +24,60 @@ def admin_logout(request):
     logout(request)
     return JsonResponse({'status': 'success', 'message': 'Logged out.'})
 
+@csrf_exempt
 def add_record(request):
-    new_record = Record.objects.create(text="Hello from Django! Record added successfully.")
+
+    record = Record.objects.create(
+        text="Hello from Django! Record added successfully."
+    )
+
+    serializer = RecordSerializer(record)
+
     return JsonResponse({
         'status': 'success',
         'message': 'Record inserted into database',
-        'record': {
-            'id': new_record.id,
-            'text': new_record.text,
-            'created_at': new_record.created_at.isoformat()
-        }
+        'record': serializer.data
     })
 
 def show_records(request):
-    records = Record.objects.all().values('id', 'text', 'created_at')
-    records_list = list(records)
-    for r in records_list:
-        r['created_at'] = r['created_at'].isoformat()
+
+    records = Record.objects.all()
+
+    serializer = RecordSerializer(records, many=True)
+
     return JsonResponse({
         'status': 'success',
-        'count': len(records_list),
-        'records': records_list
+        'count': len(serializer.data),
+        'records': serializer.data
     })
 
 @csrf_exempt
 def delete_record(request, record_id):
+
     if request.method == 'DELETE':
+
         try:
+
             record = Record.objects.get(id=record_id)
+
+            serializer = RecordSerializer(record)
+
             record.delete()
+
             return JsonResponse({
                 'status': 'success',
-                'message': f'Record {record_id} deleted successfully.'
+                'message': 'Record deleted',
+                'deleted_record': serializer.data
             })
+
         except Record.DoesNotExist:
+
             return JsonResponse({
                 'status': 'error',
-                'message': 'Record not found.'
+                'message': 'Record not found'
             }, status=404)
 
     return JsonResponse({
         'status': 'error',
-        'message': 'DELETE request required.'
+        'message': 'DELETE required'
     }, status=400)
