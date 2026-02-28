@@ -45,3 +45,24 @@ def show_records(request):
         'count': len(records_list),
         'records': records_list
     })
+
+@csrf_exempt
+def delete_record(request, record_id):
+    if request.method == 'DELETE':
+        try:
+            record = Record.objects.get(id=record_id)
+            record.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Record {record_id} deleted successfully.'
+            })
+        except Record.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Record not found.'
+            }, status=404)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'DELETE request required.'
+    }, status=400)

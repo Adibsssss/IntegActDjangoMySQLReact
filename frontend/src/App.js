@@ -2,7 +2,512 @@ import { useState } from "react";
 
 const API_BASE = "http://127.0.0.1:8000";
 
-// ─── Login Page ───────────────────────────────────────────────
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --surface: #111111;
+    --surface2: #181818;
+    --border: #2a2a2a;
+    --border-bright: #3d3d3d;
+    --amber: #e8a030;
+    --amber-dim: #a06b18;
+    --amber-glow: rgba(232,160,48,0.12);
+    --green: #4ade80;
+    --red: #f87171;
+    --text: #e8e2d8;
+    --text-muted: #6b6560;
+    --text-dim: #9e9690;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── LOGIN ── */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 60%, rgba(232,160,48,0.07) 0%, transparent 70%),
+      linear-gradient(180deg, #0a0a0a 0%, #0e0d0b 100%);
+  }
+
+  .login-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,160,48,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,160,48,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+  }
+
+  .login-card {
+    position: relative;
+    z-index: 1;
+    width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  }
+
+  .login-header {
+    padding: 32px 36px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .login-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .login-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 1px;
+    background: var(--amber);
+  }
+
+  .login-title {
+    font-family: var(--sans);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .login-body {
+    padding: 28px 36px 36px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--black);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .field-input:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px var(--amber-glow);
+  }
+
+  .field-input::placeholder { color: var(--text-muted); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--amber);
+    color: var(--black);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 14px;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary:hover { background: #f0ab38; }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .alert {
+    padding: 10px 14px;
+    font-size: 12px;
+    margin-bottom: 16px;
+    border-left: 3px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .alert-error {
+    background: rgba(248,113,113,0.07);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .alert-success {
+    background: rgba(74,222,128,0.07);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  /* ── DASHBOARD ── */
+  .dash-wrap {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232,160,48,0.04) 0%, transparent 60%),
+      var(--black);
+  }
+
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 40px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .topbar-logo {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--amber);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--amber);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--amber); }
+    50% { opacity: 0.6; box-shadow: 0 0 4px var(--amber); }
+  }
+
+  .topbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+  }
+
+  .topbar-user {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .topbar-user span {
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .main-content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: var(--amber);
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .btn-action {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 18px 24px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-action::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--amber-glow);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-action:hover { border-color: var(--amber); }
+  .btn-action:hover::before { opacity: 1; }
+  .btn-action:active { transform: translateY(1px); }
+
+  .btn-action .btn-icon {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+
+  .btn-action:hover .btn-icon { border-color: var(--amber); }
+
+  .btn-action .btn-text { display: flex; flex-direction: column; gap: 2px; }
+  .btn-action .btn-label { font-weight: 700; font-size: 12px; color: var(--text); }
+  .btn-action .btn-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.05em; text-transform: none; font-weight: 400; }
+
+  .table-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .table-panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-panel-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .record-count {
+    background: var(--amber-glow);
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  .data-table td {
+    padding: 14px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .data-table tr:hover td { background: rgba(232,160,48,0.03); }
+
+  .td-id {
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .td-text { color: var(--text); }
+
+  .td-date {
+    color: var(--text-muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .btn-del {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .btn-del:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(248,113,113,0.07);
+  }
+
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .empty-state .empty-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  .empty-state p {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .feedback-bar {
+    margin-bottom: 16px;
+  }
+
+  .blink {
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+`;
+
+// ─────────────────────────────────────────────
+// LOGIN PAGE
+// ─────────────────────────────────────────────
 function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +518,7 @@ function LoginPage({ onLogin }) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
       const res = await fetch(`${API_BASE}/login`, {
         method: "POST",
@@ -27,113 +533,120 @@ function LoginPage({ onLogin }) {
         setError(data.message);
       }
     } catch {
-      setError("Cannot connect to Django server. Is it running?");
-    } finally {
-      setLoading(false);
+      setError("Cannot connect to Django server.");
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
-        {/* Logo / Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4">
-            <span className="text-3xl">🔐</span>
+    <>
+      <style>{styles}</style>
+      <div className="login-wrap">
+        <div className="login-bg" />
+        <div className="login-grid" />
+        <div className="login-card">
+          <div className="login-header">
+            <div className="login-eyebrow">System Access</div>
+            <div className="login-title">
+              Admin
+              <br />
+              Console
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Admin Login</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Sign in with your superuser account
-          </p>
+          <div className="login-body">
+            {error && (
+              <div className="alert alert-error">
+                <span>✗</span> {error}
+              </div>
+            )}
+            <form onSubmit={handleLogin}>
+              <div className="field">
+                <label className="field-label">Identifier</label>
+                <input
+                  type="text"
+                  className="field-input"
+                  placeholder="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Passphrase</label>
+                <input
+                  type="password"
+                  className="field-input"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? "Authenticating_" : "Authenticate →"}
+              </button>
+            </form>
+          </div>
         </div>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-300 text-red-600 text-sm rounded-lg px-4 py-3 mb-5">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-              type="text"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-all duration-200"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Only Django superusers can access this panel.
-        </p>
       </div>
-    </div>
+    </>
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────
+// ─────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────
 function Dashboard({ username, onLogout }) {
   const [records, setRecords] = useState([]);
-  const [addStatus, setAddStatus] = useState(null);
-  const [loading, setLoading] = useState({ add: false, show: false });
+  const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState({ add: false, show: false });
 
   const handleAdd = async () => {
-    setLoading((l) => ({ ...l, add: true }));
-    setAddStatus(null);
+    setLoading({ ...loading, add: true });
     setError(null);
+    setMessage(null);
     try {
       const res = await fetch(`${API_BASE}/add`, { credentials: "include" });
       const data = await res.json();
-      setAddStatus(data);
+      if (data.status === "success") setMessage("Record committed to store.");
+      else setError(data.message);
     } catch {
-      setError("Failed to connect to Django server.");
-    } finally {
-      setLoading((l) => ({ ...l, add: false }));
+      setError("Cannot connect to server.");
     }
+    setLoading({ ...loading, add: false });
   };
 
   const handleShow = async () => {
-    setLoading((l) => ({ ...l, show: true }));
+    setLoading({ ...loading, show: true });
     setError(null);
+    setMessage(null);
     try {
       const res = await fetch(`${API_BASE}/show`, { credentials: "include" });
       const data = await res.json();
-      setRecords(data.records || []);
+      if (data.status === "success") setRecords(data.records);
+      else setError(data.message);
     } catch {
-      setError("Failed to connect to Django server.");
-    } finally {
-      setLoading((l) => ({ ...l, show: false }));
+      setError("Cannot connect to server.");
+    }
+    setLoading({ ...loading, show: false });
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm(`Delete record #${id}?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/delete/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setRecords(records.filter((r) => r.id !== id));
+        setMessage(data.message);
+      } else setError(data.message);
+    } catch {
+      setError("Delete failed.");
     }
   };
 
@@ -143,149 +656,140 @@ function Dashboard({ username, onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-md p-6 mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-indigo-700">
-              Django + MySQL + React
-            </h1>
-            <p className="text-gray-400 text-sm mt-0.5">
-              Logged in as{" "}
-              <span className="font-semibold text-indigo-500">{username}</span>
-            </p>
+    <>
+      <style>{styles}</style>
+      <div className="dash-wrap">
+        {/* TOPBAR */}
+        <div className="topbar">
+          <div className="topbar-left">
+            <div className="topbar-logo">
+              <div className="logo-dot" />
+              CTRL/PANEL
+            </div>
+            <div className="topbar-sep" />
+            <div className="topbar-user">
+              session: <span>{username}</span>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <a
-              href="http://127.0.0.1:8000/admin"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-            >
-              🛠 Admin Panel
-            </a>
+          <button className="btn-ghost" onClick={handleLogout}>
+            End Session
+          </button>
+        </div>
+
+        {/* MAIN */}
+        <div className="main-content">
+          {/* FEEDBACK */}
+          {(message || error) && (
+            <div className="feedback-bar">
+              {message && (
+                <div className="alert alert-success">
+                  <span>✓</span> {message}
+                </div>
+              )}
+              {error && (
+                <div className="alert alert-error">
+                  <span>✗</span> {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ACTIONS */}
+          <div className="section-header">
+            <div className="section-title">Operations</div>
+          </div>
+
+          <div className="action-row">
             <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+              className="btn-action"
+              onClick={handleAdd}
+              disabled={loading.add}
             >
-              Logout
+              <div className="btn-icon">+</div>
+              <div className="btn-text">
+                <span className="btn-label">
+                  {loading.add ? "Writing..." : "Add Record"}
+                </span>
+                <span className="btn-sub">Insert new entry into datastore</span>
+              </div>
+            </button>
+            <button
+              className="btn-action"
+              onClick={handleShow}
+              disabled={loading.show}
+            >
+              <div className="btn-icon">⊞</div>
+              <div className="btn-text">
+                <span className="btn-label">
+                  {loading.show ? "Fetching..." : "Show Records"}
+                </span>
+                <span className="btn-sub">Retrieve all stored entries</span>
+              </div>
             </button>
           </div>
-        </div>
 
-        {/* Error Banner */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-4">
-            ⚠️ {error}
+          {/* TABLE */}
+          <div className="section-header">
+            <div className="section-title">Datastore</div>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <button
-            onClick={handleAdd}
-            disabled={loading.add}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-4 rounded-xl shadow transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            {loading.add ? <span className="animate-spin">⏳</span> : "➕"}
-            {loading.add ? "Adding..." : "Add Record (/add)"}
-          </button>
+          <div className="table-panel">
+            <div className="table-panel-header">
+              <span className="table-panel-title">Records</span>
+              <span className="record-count">{records.length} entries</span>
+            </div>
 
-          <button
-            onClick={handleShow}
-            disabled={loading.show}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold py-4 rounded-xl shadow transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            {loading.show ? <span className="animate-spin">⏳</span> : "📋"}
-            {loading.show ? "Loading..." : "Show Records (/show)"}
-          </button>
-        </div>
-
-        {/* Add Status */}
-        {addStatus && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
-            <h2 className="text-indigo-700 font-semibold mb-2">
-              ✅ Record Added
-            </h2>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">ID:</span> {addStatus.record?.id}
-            </p>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Text:</span>{" "}
-              {addStatus.record?.text}
-            </p>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Created:</span>{" "}
-              {new Date(addStatus.record?.created_at).toLocaleString()}
-            </p>
-          </div>
-        )}
-
-        {/* Records Table */}
-        {records.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">
-              📦 All Records ({records.length})
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+            {records.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">▭</div>
+                <p>
+                  No data loaded<span className="blink">_</span>
+                </p>
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-600 font-medium">
-                      ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-gray-600 font-medium">
-                      Text
-                    </th>
-                    <th className="px-4 py-3 text-left text-gray-600 font-medium">
-                      Created At
-                    </th>
+                    <th>ID</th>
+                    <th>Content</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record, idx) => (
-                    <tr
-                      key={record.id}
-                      className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                    >
-                      <td className="px-4 py-3 text-indigo-600 font-mono font-medium">
-                        #{record.id}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{record.text}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
+                  {records.map((record) => (
+                    <tr key={record.id}>
+                      <td className="td-id">#{record.id}</td>
+                      <td className="td-text">{record.text}</td>
+                      <td className="td-date">
                         {new Date(record.created_at).toLocaleString()}
+                      </td>
+                      <td>
+                        <button
+                          className="btn-del"
+                          onClick={() => handleDelete(record.id)}
+                        >
+                          Remove
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Empty State */}
-        {records.length === 0 && !error && (
-          <div className="bg-white rounded-2xl shadow-md p-10 text-center text-gray-400">
-            <p className="text-4xl mb-3">🗄️</p>
-            <p>
-              Click <strong>Add Record</strong> to insert data, then{" "}
-              <strong>Show Records</strong> to view them.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
-// ─── App Root ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ROOT APP
+// ─────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
 
-  if (!user) {
-    return <LoginPage onLogin={(username) => setUser(username)} />;
-  }
-
+  if (!user) return <LoginPage onLogin={setUser} />;
   return <Dashboard username={user} onLogout={() => setUser(null)} />;
 }
